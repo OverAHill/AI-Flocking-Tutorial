@@ -14,6 +14,10 @@ using namespace DirectX;
 
 #define NEARBY_DISTANCE		5.0f
 
+#define COH_WEIGHT 1
+#define SEP_WEIGHT 1
+#define ALI_WEIGHT 3
+
 DrawableGameObject::DrawableGameObject()
 {
 	m_pVertexBuffer = nullptr;
@@ -26,11 +30,18 @@ DrawableGameObject::DrawableGameObject()
 
 	m_nearbyDrawables = nullptr;
 	m_position = XMFLOAT3(0, 0, 0);
+	createRandomDirection();
 }
 
 void DrawableGameObject::createRandomDirection()
 {
-	setDirection(XMFLOAT3(1, 0, 0));
+	int x = rand() % 101 - 50;
+	int y = rand() % 101 - 50;
+
+	XMFLOAT3 newPos = XMFLOAT3(x, y, 0);
+
+	normaliseFloat3(newPos);
+	setDirection(newPos);
 }
 
 void DrawableGameObject::setDirection(XMFLOAT3 direction)
@@ -184,9 +195,21 @@ void DrawableGameObject::update(float t, const vecDrawables& drawList, const uns
 
 	// create a list of nearby boids in the m_nearbyDrawables array
 	nearbyDrawables(drawList, index);
+	XMFLOAT3 cohVec = calculateCohesionVector(drawList);
+	cohVec = multiplyFloat3(cohVec, COH_WEIGHT);
+	XMFLOAT3 sepVec = calculateSeparationVector(drawList); 
+	sepVec = multiplyFloat3(sepVec, SEP_WEIGHT);
+	XMFLOAT3 aliVec = calculateAlignmentVector(drawList);
+	aliVec = multiplyFloat3(aliVec, ALI_WEIGHT);
+
+	m_direction = addFloat3(cohVec, sepVec);
+	m_direction = addFloat3(m_direction, aliVec);
+	m_direction = divideFloat3(m_direction, 3);
+	normaliseFloat3(m_direction);
 
 	// set position here (m_position)
-
+	XMFLOAT3 newPos = XMFLOAT3(m_position.x + m_direction.x * t * 10, m_position.y + m_direction.y * t * 10, 0);
+	setPosition(newPos);
 
 
 	XMMATRIX mTranslate = XMMatrixTranslation(m_position.x, m_position.y, m_position.z);
@@ -248,13 +271,29 @@ void DrawableGameObject::checkIsOnScreenAndFix(const XMMATRIX&  view, const XMMA
 
 	// this is the position. the fish is visible on screen if the x is -1 to 1 and the same with y
 	float fOffset = 10; // a suitable distance to rectify position within clip space
-	if (v.x < -1 || v.x > 1 || v.y < -1 || v.y > 1)
+	if (v.x < -1 || v.x > 1 || v.y < -1 || v.y > 1) // fix this
 	{
 		if (v.x < -1 || v.x > 1) {
 			// todo 
+			if (v.x < -1)
+			{
+				m_position.x = 260; //right side
+			}
+			else
+			{
+				m_position.x = -265; //left side
+			}
 		}
 		else if (v.y < -1 || v.y > 1) {
 			// todo 
+			if (v.y < -1)
+			{
+				m_position.y = 200; // top
+			}
+			else
+			{
+				m_position.y = -200; //bottom
+			}
 		}
 	}
 
@@ -267,7 +306,18 @@ XMFLOAT3 DrawableGameObject::calculateSeparationVector(const vecDrawables& drawL
 	if (drawList.size() == 0 || m_nearbyDrawables == nullptr)
 		return nearby;
 
-	
+	unsigned int index = 0;
+	while (m_nearbyDrawables[index] != UINT_MAX) {
+
+		DrawableGameObject* pFish = (drawList[m_nearbyDrawables[index]]);
+		
+		XMFLOAT3 fromFish;
+		fromFish = subtractFloat3(m_position, pFish->m_position);
+		nearby = addFloat3(fromFish, nearby);
+		index++;
+	}
+	normaliseFloat3(nearby);
+
 	return nearby; // average direction away from fish to nearby
 }
 
@@ -276,6 +326,15 @@ XMFLOAT3 DrawableGameObject::calculateAlignmentVector(const vecDrawables& drawLi
 	XMFLOAT3 nearby = XMFLOAT3(0, 0, 0);
 	if (drawList.size() == 0 || m_nearbyDrawables == nullptr)
 		return nearby;
+
+	unsigned int index = 0;
+	while (m_nearbyDrawables[index] != UINT_MAX) {
+
+		DrawableGameObject* pFish = (drawList[m_nearbyDrawables[index]]);
+		nearby = addFloat3(pFish->m_direction, nearby);
+		index++;
+	}
+	normaliseFloat3(nearby);
 
 	return nearby; // return the average direction of nearby drawables
 }
@@ -288,6 +347,16 @@ XMFLOAT3 DrawableGameObject::calculateCohesionVector(const vecDrawables& drawLis
 	if (drawList.size() == 0 || m_nearbyDrawables == nullptr)
 		return all;
 
+	
+	for (int i = 0; i < drawList.size(); i++)
+	{
+		XMFLOAT3 toFish;
+		toFish = subtractFloat3(drawList[i]->m_position, m_position);
+
+		all = addFloat3(all, toFish);
+	}
+
+	normaliseFloat3(all);
 
 
 	return all; // return avg direction from this fish to all
@@ -344,6 +413,9 @@ float DrawableGameObject::magnitudeFloat3(XMFLOAT3& f1)
 XMFLOAT3 DrawableGameObject::normaliseFloat3(XMFLOAT3& f1)
 {
 	float length = sqrt((f1.x * f1.x) + (f1.y * f1.y) + (f1.z * f1.z));
+
+	if (length == 0)
+		return f1;
 
 	f1.x /= length;
 	f1.y /= length;

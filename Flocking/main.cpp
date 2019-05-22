@@ -84,6 +84,8 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     UNREFERENCED_PARAMETER( hPrevInstance );
     UNREFERENCED_PARAMETER( lpCmdLine );
 
+	srand(time(NULL));
+
     if( FAILED( InitWindow( hInstance, nCmdShow ) ) )
         return 0;
 
@@ -492,14 +494,26 @@ HRESULT		InitMesh()
 HRESULT PlaceFish()
 {
 	// FISH_COUNT is the number of fish (it is defined above)
+	int x = 0;
+	int y = 0;
 
-	DrawableGameObject* fish = new DrawableGameObject();
+	for (int i = 0; i < FISH_COUNT; i++)
+	{
+		DrawableGameObject* fish = new DrawableGameObject();
 
-	HRESULT hr = fish->initMesh(g_pd3dDevice, g_pImmediateContext);
-	if (FAILED(hr))
-		return hr;
-	fish->setPosition(XMFLOAT3(0, 0, 0));
-	g_GameObjects.push_back(fish);
+		HRESULT hr = fish->initMesh(g_pd3dDevice, g_pImmediateContext);
+		if (FAILED(hr))
+			return hr;
+		fish->setPosition(XMFLOAT3(x*20, y*20, 0));
+		g_GameObjects.push_back(fish);
+		x++;
+
+		if (i % 10 == 0)
+		{
+			x = 0;
+			y++;
+		}
+	}
 
 	return S_OK;
 }
