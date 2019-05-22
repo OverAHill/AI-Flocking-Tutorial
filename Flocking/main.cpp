@@ -18,7 +18,7 @@
 
 #include <time.h>  
 
-#define FISH_COUNT 500
+#define FISH_COUNT 1000
 
 //--------------------------------------------------------------------------------------
 // eye position
@@ -494,6 +494,9 @@ HRESULT		InitMesh()
 HRESULT PlaceFish()
 {
 	// FISH_COUNT is the number of fish (it is defined above)
+	int rowLength = sqrt(FISH_COUNT);
+	int spacingX = 500 / rowLength;
+	int spacingY =  400 / rowLength;
 	int x = 0;
 	int y = 0;
 
@@ -504,11 +507,11 @@ HRESULT PlaceFish()
 		HRESULT hr = fish->initMesh(g_pd3dDevice, g_pImmediateContext);
 		if (FAILED(hr))
 			return hr;
-		fish->setPosition(XMFLOAT3(x*20, y*20, 0));
+		fish->setPosition(XMFLOAT3(-250 + x*spacingX, -200 + y*spacingY, 0));
 		g_GameObjects.push_back(fish);
 		x++;
 
-		if (i % 10 == 0)
+		if (i % rowLength == 0)
 		{
 			x = 0;
 			y++;

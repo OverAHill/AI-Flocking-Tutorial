@@ -15,8 +15,9 @@ using namespace DirectX;
 #define NEARBY_DISTANCE		5.0f
 
 #define COH_WEIGHT 1
-#define SEP_WEIGHT 1
+#define SEP_WEIGHT 2
 #define ALI_WEIGHT 3
+#define SPEED 20
 
 DrawableGameObject::DrawableGameObject()
 {
@@ -208,7 +209,7 @@ void DrawableGameObject::update(float t, const vecDrawables& drawList, const uns
 	normaliseFloat3(m_direction);
 
 	// set position here (m_position)
-	XMFLOAT3 newPos = XMFLOAT3(m_position.x + m_direction.x * t * 10, m_position.y + m_direction.y * t * 10, 0);
+	XMFLOAT3 newPos = XMFLOAT3(m_position.x + m_direction.x * t * SPEED, m_position.y + m_direction.y * t * SPEED, 0);
 	setPosition(newPos);
 
 
