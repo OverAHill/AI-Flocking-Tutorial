@@ -18,7 +18,7 @@
 
 #include <time.h>  
 
-#define FISH_COUNT 100
+#define FISH_COUNT 500
 
 //--------------------------------------------------------------------------------------
 // eye position
